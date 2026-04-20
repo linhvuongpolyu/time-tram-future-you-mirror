@@ -1,37 +1,11 @@
-// Audio player using Web Audio API
+// Simple audio player
 class AudioPlayer {
   private currentAudio: HTMLAudioElement | null = null;
   private isMuted = false;
-  private hasUserInteraction = false;
-  private pendingAudio: { path: string; options: { loop?: boolean; volume?: number } } | null = null;
-
-  constructor() {
-    // Enable audio playback on first user interaction
-    const enableAudioOnInteraction = () => {
-      this.hasUserInteraction = true;
-      console.log('[AudioPlayer] User interaction detected - audio enabled');
-      
-      // Resume any pending audio
-      if (this.pendingAudio) {
-        const pending = this.pendingAudio;
-        this.pendingAudio = null;
-        this.playAudio(pending.path, pending.options);
-      }
-      
-      // Remove listeners after first interaction
-      document.removeEventListener('click', enableAudioOnInteraction);
-      document.removeEventListener('touchstart', enableAudioOnInteraction);
-      document.removeEventListener('keydown', enableAudioOnInteraction);
-    };
-    
-    document.addEventListener('click', enableAudioOnInteraction);
-    document.addEventListener('touchstart', enableAudioOnInteraction);
-    document.addEventListener('keydown', enableAudioOnInteraction);
-  }
 
   async playAudio(audioPath: string, options: { loop?: boolean; volume?: number } = {}) {
     if (this.isMuted) {
-      console.log('[AudioPlayer] Skipping playback - muted');
+      console.log('[AudioPlayer] Skipping - muted');
       return;
     }
 
@@ -42,64 +16,39 @@ class AudioPlayer {
       const audio = new Audio(audioPath);
       const targetVolume = options.volume ?? 0.5;
       audio.loop = options.loop ?? false;
-      audio.preload = 'auto';
       audio.volume = targetVolume;
       
-      console.log(`[AudioPlayer] Playing: ${audioPath}, loop: ${audio.loop}, volume: ${targetVolume}, hasUserInteraction: ${this.hasUserInteraction}`);
+      console.log(`[AudioPlayer] Playing: ${audioPath}`);
+      console.log(`  Loop: ${audio.loop}, Volume: ${targetVolume}`);
       
-      // Add event listeners for debugging
+      // Event listeners for debugging
       audio.addEventListener('play', () => {
-        console.log(`[AudioPlayer] ✓ Audio started playing: ${audioPath}`);
+        console.log(`[AudioPlayer] ✓ Playing: ${audioPath}`);
       });
       
       audio.addEventListener('error', (e) => {
-        console.error(`[AudioPlayer] ✗ Audio error for ${audioPath}:`, audio.error?.code, audio.error?.message);
-      });
-
-      audio.addEventListener('canplay', () => {
-        console.log(`[AudioPlayer] Audio can play: ${audioPath}`);
-      });
-
-      audio.addEventListener('loadstart', () => {
-        console.log(`[AudioPlayer] Audio loading: ${audioPath}`);
+        console.error(`[AudioPlayer] ✗ Error: ${audioPath}`, audio.error?.message);
       });
 
       audio.addEventListener('ended', () => {
-        console.log(`[AudioPlayer] Audio ended: ${audioPath}`);
+        console.log(`[AudioPlayer] Ended: ${audioPath}`);
       });
 
-      // Try to play audio
-      try {
-        await audio.play();
-        console.log(`[AudioPlayer] ✓ Play promise resolved: ${audioPath}`);
-      } catch (err: any) {
-        console.error(`[AudioPlayer] ✗ Play promise rejected:`, err.name, err.message);
-        
-        // If autoplay is blocked, try with muted
-        if (err.name === 'NotAllowedError') {
-          console.log('[AudioPlayer] Trying with muted attribute...');
-          try {
-            audio.muted = true;
-            await audio.play();
-            console.log(`[AudioPlayer] ✓ Playing muted: ${audioPath}`);
-            // Unmute after a short delay to let audio start
-            setTimeout(() => {
-              audio.muted = false;
-              console.log(`[AudioPlayer] ✓ Unmuted after autoplay restriction`);
-            }, 100);
-          } catch (mutedErr: any) {
-            console.error(`[AudioPlayer] ✗ Muted play failed:`, mutedErr.name);
-            if (!this.hasUserInteraction) {
-              console.log('[AudioPlayer] Waiting for user interaction to play audio');
-              this.pendingAudio = { path: audioPath, options };
-            }
-          }
-        }
+      // Play audio
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log(`[AudioPlayer] ✓ Play succeeded`);
+          })
+          .catch((err: any) => {
+            console.error(`[AudioPlayer] ✗ Play failed:`, err.name, err.message);
+          });
       }
 
       this.currentAudio = audio;
     } catch (error) {
-      console.error(`[AudioPlayer] ✗ Error creating audio:`, error);
+      console.error(`[AudioPlayer] ✗ Exception:`, error);
     }
   }
 
@@ -107,18 +56,17 @@ class AudioPlayer {
     if (!this.currentAudio) return;
 
     const audio = this.currentAudio;
-    const startVolume = audio.volume;
-    const startTime = Date.now();
-
-    console.log(`[AudioPlayer] Stopping audio with fade out duration: ${fadeOutDuration}ms`);
-
+    
     if (fadeOutDuration === 0) {
       audio.pause();
       audio.currentTime = 0;
       this.currentAudio = null;
-      console.log(`[AudioPlayer] Audio stopped immediately`);
+      console.log(`[AudioPlayer] Stopped`);
       return;
     }
+
+    const startVolume = audio.volume;
+    const startTime = Date.now();
 
     const fadeOut = () => {
       const elapsed = Date.now() - startTime;
@@ -131,7 +79,7 @@ class AudioPlayer {
         audio.pause();
         audio.currentTime = 0;
         this.currentAudio = null;
-        console.log(`[AudioPlayer] Audio stopped`);
+        console.log(`[AudioPlayer] Stopped`);
       }
     };
 

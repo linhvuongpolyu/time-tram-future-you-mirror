@@ -23,7 +23,6 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(60);
   const [altCountdownSeconds, setAltCountdownSeconds] = useState(8);
-  const [audioStarted, setAudioStarted] = useState(false);
 
   const dominantImage = results.find((img: any) => img.isDominant);
   const otherImages = results.filter((img: any) => !img.isDominant);
@@ -31,14 +30,6 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   const handleBack = () => {
     audioPlayer.stopAudio();
     onBack();
-  };
-
-  // Start audio on first user interaction
-  const handleAudioStart = () => {
-    if (!audioStarted) {
-      console.log('[ResultsDisplay] User interaction detected - enabling audio');
-      setAudioStarted(true);
-    }
   };
 
   // Auto-advance to alternatives after 60 seconds (longer for intimate meeting)
@@ -113,60 +104,13 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     }
   }, [dominantImage?.image]);
 
-  // Play dominant/meeting music
-  useEffect(() => {
-    if (!showingDominant || isMuted || !audioStarted) {
-      audioPlayer.stopAudio();
-      return;
-    }
+  // Audio disabled - skipping dominant/meeting music
 
-    // Play audio file for dominant archetype
-    const audioPath = `/audio/dominant/${dominantArchetype.toLowerCase()}.mp3`;
-    audioPlayer.playAudio(audioPath, { loop: true, volume: 0.4 });
+  // Audio disabled - skipping goodbye music
 
-    return () => {
-      audioPlayer.stopAudio();
-    };
-  }, [showingDominant, dominantArchetype, isMuted, audioStarted]);
+  // Audio disabled - skipping summary music
 
-  // Play goodbye music for alternatives
-  useEffect(() => {
-    if (showingDominant || visibleOtherIndex < 0 || visibleOtherIndex >= otherImages.length || isMuted || !audioStarted) {
-      audioPlayer.stopAudio();
-      return;
-    }
-
-    // Play goodbye music file
-    const audioPath = `/audio/goodbye/goodbye.mp3`;
-    audioPlayer.playAudio(audioPath, { loop: false, volume: 0.4 });
-
-    return () => {
-      audioPlayer.stopAudio();
-    };
-  }, [showingDominant, visibleOtherIndex, otherImages.length, isMuted, audioStarted]);
-
-  // Play summary music at the end (disabled - summary.mp3 not yet available)
-  useEffect(() => {
-    if (visibleOtherIndex !== -2 || isMuted) {
-      audioPlayer.stopAudio();
-      return;
-    }
-
-    // Summary audio will be played here when summary.mp3 is available
-    // const audioPath = `/audio/summary.mp3`;
-    // audioPlayer.playAudio(audioPath, { loop: false, volume: 0.4 });
-
-    return () => {
-      audioPlayer.stopAudio();
-    };
-  }, [visibleOtherIndex, isMuted]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      audioPlayer.stopAudio();
-    };
-  }, []);
+  // Audio cleanup disabled
 
 
   const downloadQRCode = () => {
@@ -268,7 +212,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   // Dominant version display
   if (showingDominant && dominantImage) {
     return (
-      <div className="min-h-screen bg-black text-white p-6 md:p-12 flex flex-col items-center justify-center" onClick={handleAudioStart}>
+      <div className="min-h-screen bg-black text-white p-6 md:p-12 flex flex-col items-center justify-center">
         {/* Mute button */}
         <button
           onClick={() => setIsMuted(!isMuted)}
@@ -285,7 +229,6 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         <div className="text-center mb-8">
           <p className="text-gray-400 text-base md:text-lg">You chose me</p>
           <p className="text-gray-500 text-sm md:text-base">Here's who you became</p>
-          {!audioStarted && <p className="text-gray-600 text-xs md:text-sm mt-3">Click to enable audio</p>}
         </div>
 
         <div className="w-full max-w-7xl flex flex-col items-center">
@@ -369,22 +312,22 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   if (visibleOtherIndex >= 0 && visibleOtherIndex < otherImages.length) {
     const currentAlt = otherImages[visibleOtherIndex];
     return (
-      <div className="min-h-screen bg-black text-white p-8 md:p-12 flex flex-col items-center justify-center" onClick={handleAudioStart}>
+      <div className="min-h-screen bg-black text-white p-8 md:p-12 flex flex-col items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-4xl flex flex-col items-center"
+          className="w-full max-w-2xl flex flex-col items-center"
         >
-          <div className="mb-8 text-center">
-            <p className="text-gray-500 text-base mb-2">The Path Not Taken</p>
-            <p className="text-gray-600 text-sm mb-4">Alternative {visibleOtherIndex + 1} of 3</p>
+          <div className="mb-6 text-center">
+            <p className="text-gray-500 text-sm mb-1">The Path Not Taken</p>
+            <p className="text-gray-600 text-xs mb-3">Alternative {visibleOtherIndex + 1} of 3</p>
             <div className="flex justify-center gap-2">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className={`h-1 w-10 rounded-full transition-all ${
+                  className={`h-1 w-8 rounded-full transition-all ${
                     i === visibleOtherIndex ? 'bg-white' : 'bg-white/20'
                   }`}
                 />
@@ -392,24 +335,24 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
             </div>
           </div>
 
-          <div className="w-full max-w-2xl aspect-square rounded-3xl overflow-hidden border-4 border-white/20 shadow-[0_0_50px_rgba(255,255,255,0.1)] mb-8">
+          <div className="w-full max-w-sm aspect-square rounded-2xl overflow-hidden border-3 border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-6">
             <img src={currentAlt.image} alt={currentAlt.archetype} className="w-full h-full object-cover" />
           </div>
           
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">{currentAlt.archetype}</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{currentAlt.archetype}</h2>
           
           {currentAlt.goodbye && (
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="text-lg md:text-xl text-gray-300 italic text-center leading-relaxed mb-6 max-w-2xl"
+              className="text-base md:text-lg text-gray-300 italic text-center leading-relaxed mb-4 max-w-xl"
             >
               "{currentAlt.goodbye}"
             </motion.p>
           )}
           
-          <p className="text-sm text-gray-600 mt-6">Next in {altCountdownSeconds}s...</p>
+          <p className="text-xs text-gray-600 mt-4">Next in {altCountdownSeconds}s...</p>
         </motion.div>
       </div>
     );
@@ -417,8 +360,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   // Final summary screen
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-6 flex flex-col items-center justify-center overflow-y-auto" onClick={handleAudioStart}>
-      <motion.div
+    <div className="min-h-screen bg-black text-white p-4 md:p-6 flex flex-col items-center justify-center overflow-y-auto">
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
