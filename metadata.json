@@ -1,0 +1,7 @@
+{
+  "name": "Time Tram – Future You Mirror",
+  "description": "A media art installation app that scans QR codes to predict your future archetypes and generates AI mirrors of your future self.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
